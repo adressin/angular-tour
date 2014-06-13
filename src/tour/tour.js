@@ -148,6 +148,11 @@ angular.module('angular-tour.tour', [])
           scope.ttContent = val;
         });
 
+          // iBoss added
+          attrs.$observe( 'tourtipTitle', function ( val ) {
+              scope.ttTitle = val;
+          });
+
         attrs.$observe( 'tourtipPlacement', function ( val ) {
           scope.ttPlacement = val || tourConfig.placement;
         });
@@ -165,6 +170,12 @@ angular.module('angular-tour.tour', [])
         scope.index = parseInt(attrs.tourtipStep, 10);
 
         var tourtip = $compile( template )( scope );
+
+          // iBoss: Create the overlay and overlay helper elements
+          var overlay = $compile('<div class="tour-overlay" style="top: 0;bottom: 0; left: 0;right: 0;position: fixed;opacity: .8;"></div>')(scope);
+          var overlayHelper = $compile('<div class="tour-helperLayer"></div>')(scope);
+          var originalZIndex, originalPosition;
+
         tourCtrl.addStep(scope);
 
         // wrap this in a time out because the tourtip won't compile right away
@@ -187,6 +198,10 @@ angular.module('angular-tour.tour', [])
             width,
             targetElement;
 
+          // iBoss - Get the original styles to set back when hidden
+          originalZIndex = element.css('z-index');
+          originalPosition = element.css('position');
+
           if ( ! scope.ttContent ) {
             return;
           }
@@ -198,7 +213,10 @@ angular.module('angular-tour.tour', [])
           }
 
           // Append it to the dom
-          element.after( tourtip );
+          // iBoss - Add the 2 new divs
+            element.after(overlayHelper);
+            element.after(overlay);
+            element.after(tourtip);
 
           // Try to set target to the first child of our tour directive
           if(element.children().eq(0).length>0) {
@@ -251,6 +269,20 @@ angular.module('angular-tour.tour', [])
             // Now set the calculated positioning.
             tourtip.css( ttPosition );
 
+              // iBoss Add overlay position / dimensions
+              overlayHelper.css({
+                  width: element.width(),
+                  height: element.height(),
+                  left: element.position().left,
+                  top: element.position().top
+              });
+
+              // iBoss Pull targeted element above overlay
+              element.css({
+                  'z-index': '300',
+                  position: 'relative'
+              });
+
             // Scroll to the tour tip
             scrollTo(tourtip, -200, -300, tourConfig.scrollSpeed);
           };
@@ -263,6 +295,12 @@ angular.module('angular-tour.tour', [])
 
         function hide() {
           tourtip.detach();
+          overlay.detach();
+          overlayHelper.detach();
+            element.css({
+                'z-index': originalZIndex,
+                position: originalPosition
+            });
           angular.element($window).unbind('resize.' + scope.$id);
         }
 
